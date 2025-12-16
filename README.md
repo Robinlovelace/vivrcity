@@ -1,0 +1,98 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# vivarcity
+
+<!-- badges: start -->
+
+<!-- badges: end -->
+
+The goal of vivarcity is to provide a simple R interface to the
+[Vivacity Labs API](https://docs.vivacitylabs.com/).
+
+## Installation
+
+You can install the development version of vivarcity from
+[GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("Robinlovelace/vivarcity")
+```
+
+## Setup
+
+You need a Vivacity API key to use this package. Save it in your
+`.Renviron` file:
+
+    VIVACITY_API_KEY=your_api_key_here
+
+## Example
+
+This is a basic example which shows how to retrieve metadata and counts.
+
+``` r
+library(vivarcity)
+library(dplyr)
+library(tibble)
+
+# 1. Get Countline Metadata
+tryCatch({
+  metadata <- get_countline_metadata()
+  
+  # Convert to a more readable format (e.g., list of names)
+  # The API returns a named list where names are IDs
+  cl_ids <- names(metadata)
+  cat("Total Countlines available:", length(cl_ids), "\n")
+  
+  # 2. Sample 3 random countlines
+  set.seed(42) # For reproducibility
+  if(length(cl_ids) >= 3) {
+    sampled_ids <- sample(cl_ids, 3)
+  } else {
+    sampled_ids <- cl_ids
+  }
+  
+  cat("Sampling countlines:", paste(sampled_ids, collapse = ", "), "\n")
+  
+  # Show metadata for sampled IDs
+  # metadata is a list, so we extract by name
+  sampled_meta <- metadata[sampled_ids]
+  
+  # Print names of the sampled countlines
+  for(id in sampled_ids) {
+    info <- metadata[[id]]
+    cat(sprintf("ID: %s, Name: %s\n", id, info$name))
+  }
+  
+  # 3. Get Counts for these countlines (Last 24 hours)
+  to_time <- Sys.time()
+  from_time <- to_time - 86400 # 24 hours ago
+  
+  # Format times as ISO 8601 strings
+  from_str <- format(from_time, "%Y-%m-%dT%H:%M:%SZ")
+  to_str <- format(to_time, "%Y-%m-%dT%H:%M:%SZ")
+  
+  counts <- get_countline_counts(sampled_ids, from = from_str, to = to_str)
+  
+  cat("\n--- Traffic Counts (Head) ---\n")
+  # The result structure might vary, let"s look at a snippet
+  # It"s likely a list of data frames or a complex list. 
+  # Let"s try to structure it if possible or just print structure
+  str(counts, max.level = 2)
+  
+  # 4. Get Speeds (Last 24 hours)
+  speeds <- get_countline_speed(sampled_ids, from = from_str, to = to_str)
+  
+  cat("\n--- Traffic Speeds (Head) ---\n")
+  str(speeds, max.level = 2)
+  
+}, error = function(e) {
+  message("An error occurred during API requests: ", e$message)
+})
+#> Total Countlines available: 18 
+#> Sampling countlines: 49046, 47222, 47218 
+#> ID: 49046, Name: CountlineS24_MeadowRd_road_RHS_wyca001_TEST 1
+#> ID: 47222, Name: S25_BlackBullSt_road_wyca001
+#> ID: 47218, Name: S2_LeedsRd_path_LHS_wyca001
+```
