@@ -1,23 +1,23 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# vivarcity
+# vivrcity
 
 <!-- badges: start -->
 
 <!-- badges: end -->
 
-The goal of vivarcity is to provide a simple R interface to the
-[Vivacity Labs API](https://docs.vivacitylabs.com/).
+The goal of vivrcity is to provide a simple R interface to the [Vivacity
+Labs API](https://docs.vivacitylabs.com/).
 
 ## Installation
 
-You can install the development version of vivarcity from
+You can install the development version of vivrcity from
 [GitHub](https://github.com/) with:
 
 ``` r
 # install.packages("devtools")
-devtools::install_github("Robinlovelace/vivarcity")
+devtools::install_github("Robinlovelace/vivrcity")
 ```
 
 ## Setup
@@ -35,20 +35,20 @@ visualize traffic data.
 Load the package:
 
 ``` r
-library(vivarcity)
+library(vivrcity)
 ```
 
 Or for developing, clone the repo with
 
 ``` sh
-gh repo clone Robinlovelace/vivarcity
+gh repo clone Robinlovelace/vivrcity
 ```
 
 And then open the folder in RStudio/VSCode/your favourite IDE and run:
 
 ``` r
 devtools::load_all()
-#> ℹ Loading vivarcity
+#> ℹ Loading vivrcity
 ```
 
 ``` r
@@ -66,17 +66,20 @@ names(metadata_sf)
 ```
 
 ``` r
-# Sample 3 random countlines
+# Sample 3 random countlines and rename to A, B, C
 set.seed(2025)
-sampled_ids <- metadata_sf |>
+sampled_metadata <- metadata_sf |>
   slice_sample(n = 3) |>
-  pull(id)
+  mutate(sensor = c("A", "B", "C"))
+sampled_ids <- sampled_metadata$id
+id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
 
 # Get counts for a week in 2024
 from_time <- as.POSIXct("2024-01-01", tz = "UTC")
 to_time <- as.POSIXct("2024-01-08", tz = "UTC")
 
-counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time)
+counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |>
+  mutate(sensor = id_lookup[id])
 ```
 
 Note: this will fail if the sensors don’t have speed recording enabled:
@@ -91,14 +94,21 @@ We can visualise the counts:
 ``` r
 # Summary statistics
 summary_stats <- counts_df |>
-  group_by(id) |>
+  group_by(sensor) |>
   summarise(
     observations = n(),
     total_count = sum(count, na.rm = TRUE)
   )
+summary_stats
+#> # A tibble: 3 × 3
+#>   sensor observations total_count
+#>   <chr>         <int>       <dbl>
+#> 1 A               160        2848
+#> 2 B               158        4513
+#> 3 C               158        2033
 
 # Plot traffic counts over time
-ggplot(counts_df, aes(x = from, y = count, color = id)) +
+ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
   geom_line() +
   labs(
     title = "Traffic Counts (Jan 2024)",

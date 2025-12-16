@@ -15,21 +15,21 @@ get_countline_metadata <- function() {
   # Prepare lists to hold attributes and geometries
   attributes_list <- vector("list", length(raw_metadata))
   geometries_list <- vector("list", length(raw_metadata))
-  
+
   for (i in seq_along(raw_metadata)) {
     id <- names(raw_metadata)[[i]]
     item <- raw_metadata[[id]]
     coords <- item$geometry$geo_json$coordinates
-    
+
     # Handle potentially empty or malformed coordinates
     if (is.null(coords) || length(coords) == 0 || is.null(nrow(coords)) || nrow(coords) < 2) {
       geometry <- sf::st_linestring() # Empty linestring
     } else {
       geometry <- sf::st_linestring(coords)
     }
-    
+
     geometries_list[[i]] <- geometry
-    
+
     attributes_list[[i]] <- tibble::tibble(
       id = id,
       name = item$name,
@@ -41,16 +41,16 @@ get_countline_metadata <- function() {
       modified_at = item$modified_at
     )
   }
-  
+
   # Combine attributes into a data frame
   attributes_df <- dplyr::bind_rows(attributes_list)
-  
+
   # Combine geometries into an sfc object
   sfc_geometries <- sf::st_sfc(geometries_list, crs = 4326) # Assuming WGS 84 for lat/lon
 
   # Create the sf object
   sf_metadata <- sf::st_sf(attributes_df, geometry = sfc_geometries)
-  
+
   return(sf_metadata)
 }
 
@@ -59,5 +59,19 @@ get_countline_metadata <- function() {
 #' @export
 get_hardware_metadata <- function() {
   req <- vivacity_req("hardware/metadata")
-  perform_request(req)
+  resp <- perform_request(req)
+
+  if (length(resp) == 0) {
+    return(tibble::tibble())
+  }
+
+  purrr::map_df(resp, function(item) {
+    tibble::tibble(
+      id = if (!is.null(item$id)) item$id else NA_character_,
+      legacy_id = if (!is.null(item$legacy_id)) item$legacy_id else NA_character_,
+      name = if (!is.null(item$name)) item$name else NA_character_,
+      lat = if (!is.null(item$location$lat)) item$location$lat else NA_real_,
+      long = if (!is.null(item$location$long)) item$location$long else NA_real_
+    )
+  })
 }
