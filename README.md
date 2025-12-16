@@ -121,3 +121,28 @@ ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
 ```
 
 <img src="man/figures/README-summary-1.png" width="100%" />
+
+## Next Steps
+
+This package currently implements a subset of the [Vivacity Traffic
+Monitoring API](https://docs.vivacitylabs.com/). Future development
+could include:
+
+**Additional Countline Endpoints:** - Journey times
+(`/countline/journey_times`) - requires ANPR-enabled sensors
+
+**Zone-Based Data:** - Zonal speeds (`/zone/speeds`) - Occupancy data
+(`/zone/occupancy`)  
+- Turning movements (`/zone/turning_movements`) - Dwell times
+(`/zone/dwell_times`)
+
+**Other Features:** - Viewpoint metadata and data availability - Zone
+metadata - Annotations support - V2 API endpoints for projects and
+positions
+
+**Improvements:** - Better error handling with informative messages -
+Automatic pagination for large queries - Caching of metadata requests -
+Support for all vehicle/pedestrian class types
+
+Contributions welcome! See the [API
+documentation](https://docs.vivacitylabs.com/) for endpoint details.
