@@ -29,183 +29,85 @@ You need a Vivacity API key to use this package. Save it in your
 
 ## Example
 
-This example demonstrates how to retrieve metadata, filter for relevant
-sensors, and visualize traffic data.
+This example demonstrates how to retrieve metadata, counts, and
+visualize traffic data.
+
+Load the package:
 
 ``` r
 library(vivarcity)
+```
+
+Or for developing, clone the repo with
+
+``` sh
+gh repo clone Robinlovelace/vivarcity
+```
+
+And then open the folder in RStudio/VSCode/your favourite IDE and run:
+
+``` r
+devtools::load_all()
+#> ℹ Loading vivarcity
+```
+
+``` r
 library(dplyr)
 library(ggplot2)
-library(tibble)
-library(sf) # For handling spatial data
 
-# 1. Get Countline Metadata
-# This returns an sf object of all available countlines associated with the API key.
-# It simplifies accessing spatial information and attributes.
+# Get countline metadata (returns sf object)
 metadata_sf <- get_countline_metadata()
-cl_ids <- metadata_sf$id
-message("Total Countlines available: ", nrow(metadata_sf))
-message("Metadata structure (sf object):")
-print(metadata_sf)
-#> Simple feature collection with 18 features and 8 fields
-#> Geometry type: LINESTRING
-#> Dimension:     XY
-#> Bounding box:  xmin: -1.561937 ymin: 53.73719 xmax: -1.455676 ymax: 53.8142
-#> Geodetic CRS:  WGS 84
-#> # A tibble: 18 × 9
-#>    id    name      description direction is_dwell_times_filte…¹ is_anpr is_speed
-#>    <chr> <chr>     <chr>       <chr>     <lgl>                  <lgl>   <lgl>   
-#>  1 47218 S2_Leeds… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#>  2 47219 S2_Leeds… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#>  3 47220 S2_Leeds… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#>  4 47221 S25_Blac… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#>  5 47222 S25_Blac… ""          ANTICLOC… FALSE                  FALSE   FALSE   
-#>  6 47223 S22_York… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#>  7 47224 S22_York… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#>  8 47225 S22_York… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#>  9 47226 S26_Burl… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 10 47349 S26_Burl… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 11 47350 S26_Burl… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 12 47351 S26_Burl… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 13 49042 S24_Mead… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 14 49043 S24_Mead… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 15 49044 S24_Mead… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 16 49045 S24_Mead… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 17 49046 Countlin… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> 18 49208 S22_York… ""          CLOCKWIS… FALSE                  FALSE   FALSE   
-#> # ℹ abbreviated name: ¹​is_dwell_times_filtering_countline
-#> # ℹ 2 more variables: modified_at <chr>, geometry <LINESTRING [°]>
-
-
-# 2. Sample 3 random countlines
-# We will pick 3 random sensors to analyse.
-set.seed(2025) 
-if(nrow(metadata_sf) >= 3) {
-  sampled_metadata <- metadata_sf %>% sample_n(3)
-} else {
-  sampled_metadata <- metadata_sf
-}
-sampled_ids <- sampled_metadata$id
-message("\nSampled Countline IDs: ", paste(sampled_ids, collapse = ", "))
-
-
-# 3. Get Counts (Last 24 hours)
-# Ensure we work in UTC
-to_time <- as.POSIXct(Sys.time(), tz = "UTC")
-from_time <- to_time - (24 * 60 * 60) # 24 hours ago
-
-# Convert to ISO 8601 strings required by the API
-# Format: YYYY-MM-DDTHH:MM:SSZ
-from_str <- format(from_time, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-to_str <- format(to_time, "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
-
-# Retrieve counts with robust error handling for each sampled ID
-counts_data_list <- list()
-for (id in sampled_ids) {
-  message(paste0("Attempting to get counts for ID: ", id))
-  tryCatch({
-    counts_data_list[[as.character(id)]] <- get_countline_counts(id, from = from_str, to = to_str)
-  }, error = function(e) {
-    message(paste0("  Failed to get counts for ID ", id, ": ", e$message))
-  })
-}
-
-# Filter out NULL entries if any API call failed
-counts_list <- counts_data_list[!sapply(counts_data_list, is.null)]
-
-# Process counts into a single data frame if successful
-counts_df <- tibble()
-if (length(counts_list) > 0) {
-  counts_df <- bind_rows(lapply(names(counts_list), function(id) {
-    records <- counts_list[[id]]
-    bind_rows(lapply(records, function(rec) {
-      cw <- if(!is.null(rec$clockwise$total)) rec$clockwise$total else 0
-      acw <- if(!is.null(rec$anti_clockwise$total)) rec$anti_clockwise$total else 0
-      tibble(
-        id = id,
-        from = as.POSIXct(rec$from, format="%Y-%m-%dT%H:%M:%S", tz="UTC"),
-        count = cw + acw
-      )
-    }))
-  }))
-}
-
-# 4. Get Speeds (Last 24 hours)
-speeds_data_list <- list()
-for (id in sampled_ids) {
-  message(paste0("Attempting to get speeds for ID: ", id))
-  tryCatch({
-    speeds_data_list[[as.character(id)]] <- get_countline_speed(id, from = from_str, to = to_str)
-  }, error = function(e) {
-    message(paste0("  Failed to get speeds for ID ", id, ": ", e$message))
-  })
-}
-
-# Filter out NULL entries if any API call failed
-speeds_list <- speeds_data_list[!sapply(speeds_data_list, is.null)]
-
-# Process speeds to get a simple summary (mean speed)
-speeds_df <- tibble()
-if (length(speeds_list) > 0) {
-  speeds_df <- bind_rows(lapply(names(speeds_list), function(id) {
-    records <- speeds_list[[id]]
-    bind_rows(lapply(records, function(rec) {
-      cw_mean <- if(!is.null(rec$clockwise$total$mean)) rec$clockwise$total$mean else NA
-      acw_mean <- if(!is.null(rec$anti_clockwise$total$mean)) rec$anti_clockwise$total$mean else NA
-      mean_speed <- mean(c(cw_mean, acw_mean), na.rm = TRUE)
-      tibble(
-        id = id,
-        from = as.POSIXct(rec$from, format="%Y-%m-%dT%H:%M:%S", tz="UTC"),
-        mean_speed = mean_speed
-      )
-    }))
-  }))
-}
-
-
-# 5. Summary Statistics (Anonymized)
-if (nrow(counts_df) > 0 || nrow(speeds_df) > 0) {
-  counts_summary <- counts_df %>%
-    group_by(id) %>%
-    summarise(
-      total_observations = n(),
-      total_traffic_count = sum(count, na.rm = TRUE)
-    )
-
-  speeds_summary <- speeds_df %>%
-    group_by(id) %>%
-    summarise(
-      avg_speed_kph = mean(mean_speed, na.rm = TRUE)
-    )
-
-  # Join summaries
-  final_summary <- full_join(counts_summary, speeds_summary, by = "id") %>%
-    mutate(id = paste("Sensor", seq_along(id))) # Anonymize IDs
-  
-  message("\nAnonymized Summary Statistics:")
-  print(final_summary)
-} else {
-  message("\nNo data retrieved to generate summary statistics.")
-}
-
-
-# 6. Visualize Counts
-# Plot traffic counts over time for the sampled sensors
-if (nrow(counts_df) > 0) {
-  # Anonymize IDs for plotting as well
-  plot_df <- counts_df %>%
-    mutate(id = as.character(match(id, sampled_ids))) %>%
-    mutate(id = paste("Sensor", id))
-
-  ggplot(plot_df, aes(x = from, y = count, color = id)) +
-    geom_line() +
-    labs(title = "Traffic Counts (Last 24 Hours)",
-         x = "Time",
-         y = "Total Vehicles",
-         color = "Sensor ID") +
-    theme_minimal() +
-    theme(legend.position = "bottom")
-} else {
-  message("\nNo count data to visualize.")
-}
+names(metadata_sf)
+#> [1] "id"                                 "name"                              
+#> [3] "description"                        "direction"                         
+#> [5] "is_dwell_times_filtering_countline" "is_anpr"                           
+#> [7] "is_speed"                           "modified_at"                       
+#> [9] "geometry"
 ```
+
+``` r
+# Sample 3 random countlines
+set.seed(2025)
+sampled_ids <- metadata_sf |>
+  slice_sample(n = 3) |>
+  pull(id)
+
+# Get counts for a week in 2024
+from_time <- as.POSIXct("2024-01-01", tz = "UTC")
+to_time <- as.POSIXct("2024-01-08", tz = "UTC")
+
+counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time)
+```
+
+Note: this will fail if the sensors don’t have speed recording enabled:
+
+``` r
+# Get speeds (function accepts vector of IDs)
+speeds_df <- get_countline_speed(sampled_ids, from = from_time, to = to_time)
+```
+
+We can visualise the counts:
+
+``` r
+# Summary statistics
+summary_stats <- counts_df |>
+  group_by(id) |>
+  summarise(
+    observations = n(),
+    total_count = sum(count, na.rm = TRUE)
+  )
+
+# Plot traffic counts over time
+ggplot(counts_df, aes(x = from, y = count, color = id)) +
+  geom_line() +
+  labs(
+    title = "Traffic Counts (Jan 2024)",
+    x = "Time",
+    y = "Total Vehicles",
+    color = "Sensor"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+<img src="man/figures/README-summary-1.png" width="100%" />
