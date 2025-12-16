@@ -1,4 +1,3 @@
-# Utils
 vivacity_base_url <- function() {
   "https://api.vivacitylabs.com"
 }
@@ -19,10 +18,21 @@ vivacity_req <- function(endpoint) {
 }
 
 perform_request <- function(req) {
-  resp <- httr2::req_perform(req)
-  if (httr2::resp_status(resp) == 200) {
+  # We use tryCatch to catch the error thrown by req_perform
+  # and try to extract the body if its an HTTP error
+  tryCatch({
+    resp <- httr2::req_perform(req)
     httr2::resp_body_json(resp, simplifyVector = TRUE)
-  } else {
-    httr2::resp_check_status(resp)
-  }
+  }, error = function(e) {
+    if (inherits(e, "httr2_http_error")) {
+      body <- try(httr2::resp_body_string(e$response), silent = TRUE)
+      if (!inherits(body, "try-error") && nzchar(body)) {
+        stop(sprintf("API Error (%s): %s\nBody: %s", 
+                     httr2::resp_status(e$response), 
+                     e$message, 
+                     body), call. = FALSE)
+      }
+    }
+    stop(e)
+  })
 }

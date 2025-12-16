@@ -10,6 +10,10 @@ LazyData: true
 Imports:
     httr2,
     jsonlite,
-    dplyr
+    dplyr,
+    sf,
+    purrr,
+    tibble
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.3
+
