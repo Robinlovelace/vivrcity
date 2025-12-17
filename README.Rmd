@@ -106,6 +106,19 @@ counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |
   mutate(sensor = id_lookup[id])
 ```
 
+The package automatically batches requests >7 days to work around API limits.
+Here's a 365-day example:
+
+```{r yearly}
+# Get a full year of data (automatically batched into 7-day chunks)
+from_year <- as.POSIXct("2025-01-01", tz = "UTC")
+to_year <- as.POSIXct("2025-12-17", tz = "UTC")
+
+yearly_counts <- get_countline_counts(sampled_ids[1], from = from_year, to = to_year)
+nrow(yearly_counts)
+range(yearly_counts$from)
+```
+
 Note: this will fail if the sensors don't have speed recording enabled:
 
 ```{r, eval=FALSE}

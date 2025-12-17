@@ -8,7 +8,18 @@
 #' @return Data frame of counts.
 #' @export
 get_countline_counts <- function(countline_ids, from, to, classes = NULL, time_bucket = "1h") {
-  # Handle multiple IDs logic in return parsing
+  # Split into 7-day batches to respect API limits
+  batches <- batch_date_range(from, to, max_days = 7)
+
+  # Fetch each batch and combine
+  purrr::map_df(batches, function(batch) {
+    fetch_counts_batch(countline_ids, batch$from, batch$to, classes, time_bucket)
+  })
+}
+
+#' Internal function to fetch a single batch of counts
+#' @noRd
+fetch_counts_batch <- function(countline_ids, from, to, classes = NULL, time_bucket = "1h") {
   req <- vivacity_req("countline/counts") |>
     httr2::req_url_query(
       countline_ids = paste(countline_ids, collapse = ","),
@@ -44,17 +55,12 @@ get_countline_counts <- function(countline_ids, from, to, classes = NULL, time_b
     }
 
     # If records IS a dataframe (simplifyVector succeeded)
-    # It has columns 'from', 'to'. 'clockwise' and 'anti_clockwise' might be nested dataframes or columns.
-
-    # helper to safely get total
     get_total <- function(col_data) {
       if (is.data.frame(col_data)) {
         if ("total" %in% names(col_data)) {
           return(col_data$total)
         }
-        # If no total column, sum numeric columns? Risk of double counting if hierarchy exists.
-        # But for Vivacity, if total missing, sub-classes sum usually works.
-        rowSums(dplyr::select(col_data, where(is.numeric)), na.rm = TRUE)
+        rowSums(dplyr::select(col_data, dplyr::where(is.numeric)), na.rm = TRUE)
       } else if (is.vector(col_data) || is.null(col_data)) {
         return(0)
       } else {
