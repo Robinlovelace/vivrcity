@@ -1,4 +1,32 @@
-# Get Countline Counts
+#' Get Countline Counts
+#'
+#' Simple wrapper to get countline counts with class breakdown by default.
+#' This is the recommended function for most use cases.
+#'
+#' @param countline_ids Vector of countline IDs.
+#' @param from Start timestamp.
+#' @param to End timestamp.
+#' @param by_class If TRUE (default), returns counts broken down by transport
+#'   class (pedestrian, cyclist, etc.) in long format. If FALSE, returns
+#'   total counts only.
+#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "1h".
+#' @return Data frame of counts.
+#' @export
+get_counts <- function(countline_ids, from, to, by_class = TRUE, time_bucket = "1h") {
+  batches <- batch_date_range(from, to, max_days = 7)
+
+  if (by_class) {
+    purrr::map_df(batches, function(batch) {
+      fetch_counts_by_class_batch(countline_ids, batch$from, batch$to, time_bucket)
+    })
+  } else {
+    purrr::map_df(batches, function(batch) {
+      fetch_counts_batch(countline_ids, batch$from, batch$to, NULL, time_bucket)
+    })
+  }
+}
+
+# Get Countline Counts (original function for backward compatibility)
 #'
 #' @param countline_ids Vector of countline IDs.
 #' @param from Start timestamp.
