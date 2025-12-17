@@ -79,8 +79,14 @@ For visualisation it can be useful to convert to points:
 ```{r}
 metadata_points <- metadata_sf |>
   sf::st_centroid()
-# mapview::mapview(metadata_points)
-duplicated(metadata_points$geometry)
+```
+
+You can then visualise the data with your favourite mapping package, e.g.:
+
+```{r, eval=FALSE, echo=FALSE}
+library(tmap)
+tmap_mode("view")
+qtm(metadata_points)
 ```
 
 ```{r}
