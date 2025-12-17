@@ -128,11 +128,52 @@ yearly_counts |>
   ) +
   theme_minimal() +
   theme(legend.position = "bottom")
-#> `summarise()` has grouped output by 'sensor'. You can override using the
+#> `summarise()` has grouped output by
+#> 'sensor'. You can override using the
 #> `.groups` argument.
 ```
 
 <img src="man/figures/README-yearly_stats-1.png" width="100%" />
+
+### Counts by Transport Mode
+
+You can get counts broken down by transport class:
+
+``` r
+# Get counts by mode/class for a week
+mode_counts <- get_countline_counts_by_class(
+  sampled_ids[1],
+  from = from_time,
+  to = to_time
+)
+head(mode_counts)
+#> # A tibble: 6 × 5
+#>   id    from                to                  class      count
+#>   <chr> <dttm>              <dttm>              <chr>      <dbl>
+#> 1 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 cyclist        3
+#> 2 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 pedestrian     2
+#> 3 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 motorbike      0
+#> 4 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 car            0
+#> 5 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 van            0
+#> 6 51890 2025-12-10 01:00:00 2025-12-10 02:00:00 cyclist        3
+
+# Plot pedestrians vs cyclists
+mode_counts |>
+  filter(class %in% c("pedestrian", "cyclist")) |>
+  group_by(class, day = as.Date(from)) |>
+  summarise(count = sum(count, na.rm = TRUE), .groups = "drop") |>
+  ggplot(aes(x = day, y = count, fill = class)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Pedestrians vs Cyclists",
+    x = "Date",
+    y = "Daily Count",
+    fill = "Mode"
+  ) +
+  theme_minimal()
+```
+
+<img src="man/figures/README-modes-1.png" width="100%" />
 
 Note: this will fail if the sensors don’t have speed recording enabled:
 

@@ -137,6 +137,35 @@ yearly_counts |>
   theme(legend.position = "bottom")
 ```
 
+### Counts by Transport Mode
+
+You can get counts broken down by transport class:
+
+```{r modes}
+# Get counts by mode/class for a week
+mode_counts <- get_countline_counts_by_class(
+  sampled_ids[1],
+  from = from_time,
+  to = to_time
+)
+head(mode_counts)
+
+# Plot pedestrians vs cyclists
+mode_counts |>
+  filter(class %in% c("pedestrian", "cyclist")) |>
+  group_by(class, day = as.Date(from)) |>
+  summarise(count = sum(count, na.rm = TRUE), .groups = "drop") |>
+  ggplot(aes(x = day, y = count, fill = class)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Pedestrians vs Cyclists",
+    x = "Date",
+    y = "Daily Count",
+    fill = "Mode"
+  ) +
+  theme_minimal()
+```
+
 Note: this will fail if the sensors don't have speed recording enabled:
 
 ```{r, eval=FALSE}
