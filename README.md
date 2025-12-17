@@ -121,17 +121,17 @@ names(counts)
 
 # Plot pedestrians vs cyclists
 counts |>
-  filter(class %in% c("pedestrian", "cyclist")) |>
+  filter(class %in% c("pedestrian", "cyclist", "car")) |>
   mutate(sensor = id_lookup[id]) |>
   group_by(sensor, class, day = as.Date(from)) |>
   summarise(count = sum(count, na.rm = TRUE), .groups = "drop") |>
-  ggplot(aes(x = day, y = count, fill = class)) +
-  geom_col(position = "dodge") +
+  ggplot(aes(x = day, y = count, color = class)) +
+  geom_line() +
+  facet_wrap(~sensor, ncol = 1) +
   labs(
-    title = "Pedestrians vs Cyclists",
     x = "Date",
-    y = "Daily Count",
-    fill = "Mode"
+    y = "Count",
+    color = "Mode"
   ) +
   theme_minimal()
 ```
@@ -145,29 +145,6 @@ Note: this will fail if the sensors don’t have speed recording enabled:
 ``` r
 # Get speeds (function accepts vector of IDs)
 speeds_df <- get_countline_speed(sampled_ids, from = from_time, to = to_time)
-```
-
-``` r
-# Summary statistics
-summary_stats <- counts_df |>
-  group_by(sensor) |>
-  summarise(
-    observations = n(),
-    total_count = sum(count, na.rm = TRUE)
-  )
-summary_stats
-
-# Plot traffic counts over time
-ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
-  geom_line() +
-  labs(
-    title = "Traffic Counts (Dec 2025)",
-    x = "Time",
-    y = "Total Vehicles",
-    color = "Sensor"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
 ```
 
 ## Next Steps
