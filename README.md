@@ -106,27 +106,30 @@ limits. Here’s a 365-day example:
 from_year <- as.POSIXct("2025-01-01", tz = "UTC")
 to_year <- as.POSIXct("2025-12-17", tz = "UTC")
 
-yearly_counts <- get_countline_counts(sampled_ids[1], from = from_year, to = to_year)
+yearly_counts <- get_countline_counts(sampled_ids[1:2], from = from_year, to = to_year)
 ```
 
 ``` r
 nrow(yearly_counts)
-#> [1] 6792
+#> [1] 13275
 range(yearly_counts$from)
 #> [1] "2025-01-01 00:00:00 UTC" "2025-12-16 23:00:00 UTC"
 # Let's plot the average daily counts for this counter:
 yearly_counts |>
-  group_by(day = as.Date(from)) |>
+  mutate(sensor = id_lookup[id]) |>
+  group_by(sensor, day = as.Date(from)) |>
   summarise(count = mean(count)) |>
-  ggplot(aes(x = day, y = count)) +
+  ggplot(aes(x = day, y = count, color = sensor)) +
   geom_line() +
   labs(
-    title = "Traffic Counts (Dec 2025)",
+    title = "Traffic Counts",
     x = "Time",
     y = "Total Vehicles"
   ) +
   theme_minimal() +
   theme(legend.position = "bottom")
+#> `summarise()` has grouped output by 'sensor'. You can override using the
+#> `.groups` argument.
 ```
 
 <img src="man/figures/README-yearly_stats-1.png" width="100%" />

@@ -9,8 +9,9 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.path = "man/figures/README-",
-  out.width = "100%",
-  cache = TRUE
+  out.width = "100%"
+  # ,
+  # cache = TRUE
 )
 ```
 
@@ -115,7 +116,7 @@ Here's a 365-day example:
 from_year <- as.POSIXct("2025-01-01", tz = "UTC")
 to_year <- as.POSIXct("2025-12-17", tz = "UTC")
 
-yearly_counts <- get_countline_counts(sampled_ids[1], from = from_year, to = to_year)
+yearly_counts <- get_countline_counts(sampled_ids[1:2], from = from_year, to = to_year)
 ```
 
 ```{r yearly_stats}
@@ -123,9 +124,10 @@ nrow(yearly_counts)
 range(yearly_counts$from)
 # Let's plot the average daily counts for this counter:
 yearly_counts |>
-  group_by(day = as.Date(from)) |>
+  mutate(sensor = id_lookup[id]) |>
+  group_by(sensor, day = as.Date(from)) |>
   summarise(count = mean(count)) |>
-  ggplot(aes(x = day, y = count)) +
+  ggplot(aes(x = day, y = count, color = sensor)) +
   geom_line() +
   labs(
     title = "Traffic Counts",
