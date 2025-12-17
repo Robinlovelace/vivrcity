@@ -9,3 +9,4 @@
 .Renviron
 *.geojson
 *.csv
+*.html
