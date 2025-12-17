@@ -9,19 +9,32 @@
 #' @param by_class If TRUE (default), returns counts broken down by transport
 #'   class (pedestrian, cyclist, etc.) in long format. If FALSE, returns
 #'   total counts only.
-#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "1h".
+#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "24h".
+#' @param wait Seconds to wait between API requests. Defaults to 1.
 #' @return Data frame of counts.
 #' @export
-get_counts <- function(countline_ids, from, to, by_class = TRUE, time_bucket = "1h") {
+get_counts <- function(countline_ids, from, to, by_class = TRUE, time_bucket = "24h", wait = 1) {
   batches <- batch_date_range(from, to, max_days = 7)
 
   if (by_class) {
     purrr::map_df(batches, function(batch) {
-      fetch_counts_by_class_batch(countline_ids, batch$from, batch$to, time_bucket)
+      if (wait > 0) Sys.sleep(wait)
+      tryCatch({
+        fetch_counts_by_class_batch(countline_ids, batch$from, batch$to, time_bucket)
+      }, error = function(e) {
+        message(sprintf("Error fetching batch %s to %s: %s", batch$from, batch$to, e$message))
+        tibble::tibble()
+      })
     })
   } else {
     purrr::map_df(batches, function(batch) {
-      fetch_counts_batch(countline_ids, batch$from, batch$to, NULL, time_bucket)
+      if (wait > 0) Sys.sleep(wait)
+      tryCatch({
+        fetch_counts_batch(countline_ids, batch$from, batch$to, NULL, time_bucket)
+      }, error = function(e) {
+        message(sprintf("Error fetching batch %s to %s: %s", batch$from, batch$to, e$message))
+        tibble::tibble()
+      })
     })
   }
 }
@@ -32,22 +45,29 @@ get_counts <- function(countline_ids, from, to, by_class = TRUE, time_bucket = "
 #' @param from Start timestamp.
 #' @param to End timestamp.
 #' @param classes Vector of classes to include.
-#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "1h".
+#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "24h".
+#' @param wait Seconds to wait between API requests. Defaults to 1.
 #' @return Data frame of counts.
 #' @export
-get_countline_counts <- function(countline_ids, from, to, classes = NULL, time_bucket = "1h") {
+get_countline_counts <- function(countline_ids, from, to, classes = NULL, time_bucket = "24h", wait = 1) {
   # Split into 7-day batches to respect API limits
   batches <- batch_date_range(from, to, max_days = 7)
 
   # Fetch each batch and combine
   purrr::map_df(batches, function(batch) {
-    fetch_counts_batch(countline_ids, batch$from, batch$to, classes, time_bucket)
+    if (wait > 0) Sys.sleep(wait)
+    tryCatch({
+      fetch_counts_batch(countline_ids, batch$from, batch$to, classes, time_bucket)
+    }, error = function(e) {
+      message(sprintf("Error fetching batch %s to %s: %s", batch$from, batch$to, e$message))
+      tibble::tibble()
+    })
   })
 }
 
 #' Internal function to fetch a single batch of counts
 #' @noRd
-fetch_counts_batch <- function(countline_ids, from, to, classes = NULL, time_bucket = "1h") {
+fetch_counts_batch <- function(countline_ids, from, to, classes = NULL, time_bucket = "24h") {
   req <- vivacity_req("countline/counts") |>
     httr2::req_url_query(
       countline_ids = paste(countline_ids, collapse = ","),
@@ -117,20 +137,27 @@ fetch_counts_batch <- function(countline_ids, from, to, classes = NULL, time_buc
 #' @param countline_ids Vector of countline IDs.
 #' @param from Start timestamp.
 #' @param to End timestamp.
-#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "1h".
+#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "24h".
+#' @param wait Seconds to wait between API requests. Defaults to 1.
 #' @return Data frame with counts by class in long format.
 #' @export
-get_countline_counts_by_class <- function(countline_ids, from, to, time_bucket = "1h") {
+get_countline_counts_by_class <- function(countline_ids, from, to, time_bucket = "24h", wait = 1) {
   batches <- batch_date_range(from, to, max_days = 7)
 
   purrr::map_df(batches, function(batch) {
-    fetch_counts_by_class_batch(countline_ids, batch$from, batch$to, time_bucket)
+    if (wait > 0) Sys.sleep(wait)
+    tryCatch({
+      fetch_counts_by_class_batch(countline_ids, batch$from, batch$to, time_bucket)
+    }, error = function(e) {
+      message(sprintf("Error fetching batch %s to %s: %s", batch$from, batch$to, e$message))
+      tibble::tibble()
+    })
   })
 }
 
 #' Internal function to fetch a single batch of counts by class
 #' @noRd
-fetch_counts_by_class_batch <- function(countline_ids, from, to, time_bucket = "1h") {
+fetch_counts_by_class_batch <- function(countline_ids, from, to, time_bucket = "24h") {
   req <- vivacity_req("countline/counts") |>
     httr2::req_url_query(
       countline_ids = paste(countline_ids, collapse = ","),

@@ -25,7 +25,7 @@ The goal of vivrcity is to provide a simple R interface to the [Vivacity Labs AP
 
 You can install the development version of vivrcity from [GitHub](https://github.com/) with:
 
-```r
+```{r eval=FALSE}
 # install.packages("devtools")
 devtools::install_github("Robinlovelace/vivrcity")
 ```
@@ -141,6 +141,24 @@ Note: this will fail if the sensors don't have speed recording enabled:
 ```{r, eval=FALSE}
 # Get speeds (function accepts vector of IDs)
 speeds_df <- get_countline_speed(sampled_ids, from = from_time, to = to_time)
+```
+
+## Aggregating data
+
+Sometimes you might want to aggregate data from multiple countlines that belong to the same sensor (e.g. `S38_in` and `S38_out`).
+The package provides functions to simplify IDs and aggregate both counts and metadata.
+
+```{r aggregation}
+# Aggregate counts by simplified ID (sensor)
+aggregated_counts <- aggregate_counts(counts, simplify_fn = id_simplify)
+nrow(aggregated_counts) / nrow(counts)
+
+# Aggregate metadata (returns sf object with one row per sensor and unioned geometry)
+# Use name_simplify to aggregate based on the name column (where sensor ID usually is)
+metadata_aggregated <- aggregate_meta(metadata_sf, simplify_fn = name_simplify)
+
+# Plot aggregated metadata
+qtm(metadata_aggregated)
 ```
 
 ```{r summary, eval=FALSE, echo=FALSE}
