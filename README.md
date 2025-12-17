@@ -99,66 +99,30 @@ counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |
 ```
 
 The package automatically batches requests \>7 days to work around API
-limits. Here’s a 365-day example:
+limits:
 
 ``` r
-# Get a full year of data (automatically batched into 7-day chunks)
-from_year <- as.POSIXct("2025-01-01", tz = "UTC")
-to_year <- as.POSIXct("2025-12-17", tz = "UTC")
+# Get a month of data (automatically batched into 7-day chunks)
+from_month <- as.POSIXct("2025-11-17", tz = "UTC")
+to_month <- as.POSIXct("2025-12-17", tz = "UTC")
 
-yearly_counts <- get_countline_counts(sampled_ids[1:2], from = from_year, to = to_year)
+monthly_counts <- get_counts(sampled_ids[1], from = from_month, to = to_month, by_class = FALSE)
+nrow(monthly_counts)
+#> [1] 695
 ```
-
-``` r
-nrow(yearly_counts)
-#> [1] 13275
-range(yearly_counts$from)
-#> [1] "2025-01-01 00:00:00 UTC" "2025-12-16 23:00:00 UTC"
-# Let's plot the average daily counts for this counter:
-yearly_counts |>
-  mutate(sensor = id_lookup[id]) |>
-  group_by(sensor, day = as.Date(from)) |>
-  summarise(count = mean(count)) |>
-  ggplot(aes(x = day, y = count, color = sensor)) +
-  geom_line() +
-  labs(
-    title = "Traffic Counts",
-    x = "Time",
-    y = "Total Vehicles"
-  ) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-#> `summarise()` has grouped output by
-#> 'sensor'. You can override using the
-#> `.groups` argument.
-```
-
-<img src="man/figures/README-yearly_stats-1.png" width="100%" />
 
 ### Counts by Transport Mode
 
 You can get counts broken down by transport class:
 
 ``` r
-# Get counts by mode/class for a week
-mode_counts <- get_countline_counts_by_class(
-  sampled_ids[1],
-  from = from_time,
-  to = to_time
-)
-head(mode_counts)
-#> # A tibble: 6 × 5
-#>   id    from                to                  class      count
-#>   <chr> <dttm>              <dttm>              <chr>      <dbl>
-#> 1 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 cyclist        3
-#> 2 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 pedestrian     2
-#> 3 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 motorbike      0
-#> 4 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 car            0
-#> 5 51890 2025-12-10 00:00:00 2025-12-10 01:00:00 van            0
-#> 6 51890 2025-12-10 01:00:00 2025-12-10 02:00:00 cyclist        3
+# Get counts by mode/class (default with get_counts)
+counts <- get_counts(sampled_ids[1], from = from_time, to = to_time)
+names(counts)
+#> [1] "id"    "from"  "to"    "class" "count"
 
 # Plot pedestrians vs cyclists
-mode_counts |>
+counts |>
   filter(class %in% c("pedestrian", "cyclist")) |>
   group_by(class, day = as.Date(from)) |>
   summarise(count = sum(count, na.rm = TRUE), .groups = "drop") |>
