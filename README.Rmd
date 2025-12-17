@@ -48,11 +48,14 @@ Load the package:
 library(vivrcity)
 ```
 
-Or for developing, clone the repo with
+Or for developing, clone the repo with the following command:
 
 ```sh
 gh repo clone Robinlovelace/vivrcity
 ```
+
+See [GitHub CLI installation instructions](https://github.com/cli/cli#installation) for how to install `gh`.
+
 
 And then open the folder in RStudio/VSCode/your favourite IDE and run:
 
@@ -68,6 +71,16 @@ library(ggplot2)
 # Get countline metadata (returns sf object)
 metadata_sf <- get_countline_metadata()
 names(metadata_sf)
+```
+
+The countline dataset is represented as linestrings.
+For visualisation it can be useful to convert to points:
+
+```{r}
+metadata_points <- metadata_sf |>
+  sf::st_centroid()
+# mapview::mapview(metadata_points)
+duplicated(metadata_points$geometry)
 ```
 
 ```{r}
@@ -110,7 +123,7 @@ summary_stats
 ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
   geom_line() +
   labs(
-    title = "Traffic Counts (Jan 2024)",
+    title = "Traffic Counts (Dec 2025)",
     x = "Time",
     y = "Total Vehicles",
     color = "Sensor"
@@ -118,6 +131,23 @@ ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
+
+```{r exploratory, eval=FALSE, echo=FALSE}
+# Exploring the data
+highest_count <- counts_df |>
+  slice_max(count)
+
+highest_count
+
+# Let's plot the associated sensor:
+highest_count_id <- highest_count$id
+highest_count_sf <- metadata_sf |>
+  filter(id == highest_count_id)
+library(tmap)
+tmap_mode("view")
+qtm(highest_count_sf)
+```
+
 
 ## Next Steps
 
@@ -145,3 +175,4 @@ This package currently implements a subset of the [Vivacity Traffic Monitoring A
 - Support for all vehicle/pedestrian class types
 
 Contributions welcome! See the [API documentation](https://docs.vivacitylabs.com/) for endpoint details.
+
