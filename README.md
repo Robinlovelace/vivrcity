@@ -27,7 +27,7 @@ You need a Vivacity API key to use this package. Save it in your
 
     VIVACITY_API_KEY=your_api_key_here
 
-## Example
+## Installation
 
 This example demonstrates how to retrieve metadata, counts, and
 visualize traffic data.
@@ -37,6 +37,13 @@ Load the package:
 ``` r
 library(vivrcity)
 ```
+
+<details>
+
+<summary>
+
+Development
+</summary>
 
 Or for developing, clone the repo with the following command:
 
@@ -54,6 +61,10 @@ And then open the folder in RStudio/VSCode/your favourite IDE and run:
 devtools::load_all()
 #> ℹ Loading vivrcity
 ```
+
+</details>
+
+## Countline metadata
 
 ``` r
 library(dplyr)
@@ -82,6 +93,14 @@ You can then visualise the data with your favourite mapping package,
 e.g.:
 
 ``` r
+library(tmap)
+tmap_mode("view")
+qtm(metadata_points)
+```
+
+## Getting counts
+
+``` r
 # Sample 3 random countlines and rename to A, B, C
 set.seed(2025)
 sampled_metadata <- metadata_sf |>
@@ -91,40 +110,20 @@ sampled_ids <- sampled_metadata$id
 id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
 
 # Get counts for a week in 2025
-from_time <- as.POSIXct("2025-12-10", tz = "UTC")
+from_time <- as.POSIXct("2025-12-01", tz = "UTC")
 to_time <- as.POSIXct("2025-12-17", tz = "UTC")
 
-counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |>
-  mutate(sensor = id_lookup[id])
-```
-
-The package automatically batches requests \>7 days to work around API
-limits:
-
-``` r
-# Get a month of data (automatically batched into 7-day chunks)
-from_month <- as.POSIXct("2025-11-17", tz = "UTC")
-to_month <- as.POSIXct("2025-12-17", tz = "UTC")
-
-monthly_counts <- get_counts(sampled_ids[1], from = from_month, to = to_month, by_class = FALSE)
-nrow(monthly_counts)
-#> [1] 695
-```
-
-### Counts by Transport Mode
-
-You can get counts broken down by transport class:
-
-``` r
 # Get counts by mode/class (default with get_counts)
-counts <- get_counts(sampled_ids[1], from = from_time, to = to_time)
+counts <- get_counts(sampled_ids, from = from_time, to = to_time)
+
 names(counts)
 #> [1] "id"    "from"  "to"    "class" "count"
 
 # Plot pedestrians vs cyclists
 counts |>
   filter(class %in% c("pedestrian", "cyclist")) |>
-  group_by(class, day = as.Date(from)) |>
+  mutate(sensor = id_lookup[id]) |>
+  group_by(sensor, class, day = as.Date(from)) |>
   summarise(count = sum(count, na.rm = TRUE), .groups = "drop") |>
   ggplot(aes(x = day, y = count, fill = class)) +
   geom_col(position = "dodge") +
@@ -137,7 +136,9 @@ counts |>
   theme_minimal()
 ```
 
-<img src="man/figures/README-modes-1.png" width="100%" />
+<img src="README_files/figure-gfm/counts-1.png" width="100%" />
+
+## Getting speeds
 
 Note: this will fail if the sensors don’t have speed recording enabled:
 
@@ -145,8 +146,6 @@ Note: this will fail if the sensors don’t have speed recording enabled:
 # Get speeds (function accepts vector of IDs)
 speeds_df <- get_countline_speed(sampled_ids, from = from_time, to = to_time)
 ```
-
-We can visualise the counts:
 
 ``` r
 # Summary statistics
@@ -157,12 +156,6 @@ summary_stats <- counts_df |>
     total_count = sum(count, na.rm = TRUE)
   )
 summary_stats
-#> # A tibble: 3 × 3
-#>   sensor observations total_count
-#>   <chr>         <int>       <dbl>
-#> 1 A               162        2804
-#> 2 B               142         961
-#> 3 C               143         834
 
 # Plot traffic counts over time
 ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
@@ -176,8 +169,6 @@ ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
-
-<img src="man/figures/README-summary-1.png" width="100%" />
 
 ## Next Steps
 
