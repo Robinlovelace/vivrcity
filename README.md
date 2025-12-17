@@ -74,9 +74,9 @@ sampled_metadata <- metadata_sf |>
 sampled_ids <- sampled_metadata$id
 id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
 
-# Get counts for a week in 2024
-from_time <- as.POSIXct("2024-01-01", tz = "UTC")
-to_time <- as.POSIXct("2024-01-08", tz = "UTC")
+# Get counts for a week in 2025
+from_time <- as.POSIXct("2025-12-10", tz = "UTC")
+to_time <- as.POSIXct("2025-12-17", tz = "UTC")
 
 counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |>
   mutate(sensor = id_lookup[id])
@@ -103,9 +103,9 @@ summary_stats
 #> # A tibble: 3 × 3
 #>   sensor observations total_count
 #>   <chr>         <int>       <dbl>
-#> 1 A               160        2848
-#> 2 B               158        4513
-#> 3 C               158        2033
+#> 1 A               162        2804
+#> 2 B               142         961
+#> 3 C               143         834
 
 # Plot traffic counts over time
 ggplot(counts_df, aes(x = from, y = count, color = sensor)) +

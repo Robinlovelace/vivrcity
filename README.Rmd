@@ -79,9 +79,9 @@ sampled_metadata <- metadata_sf |>
 sampled_ids <- sampled_metadata$id
 id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
 
-# Get counts for a week in 2024
-from_time <- as.POSIXct("2024-01-01", tz = "UTC")
-to_time <- as.POSIXct("2024-01-08", tz = "UTC")
+# Get counts for a week in 2025
+from_time <- as.POSIXct("2025-12-10", tz = "UTC")
+to_time <- as.POSIXct("2025-12-17", tz = "UTC")
 
 counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |>
   mutate(sensor = id_lookup[id])
