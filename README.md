@@ -98,6 +98,42 @@ counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |
   mutate(sensor = id_lookup[id])
 ```
 
+The package automatically batches requests \>7 days to work around API
+limits. Here’s a 365-day example:
+
+``` r
+# Get a full year of data (automatically batched into 7-day chunks)
+from_year <- as.POSIXct("2025-01-01", tz = "UTC")
+to_year <- as.POSIXct("2025-12-17", tz = "UTC")
+
+yearly_counts <- get_countline_counts(sampled_ids[1:2], from = from_year, to = to_year)
+```
+
+``` r
+nrow(yearly_counts)
+#> [1] 13275
+range(yearly_counts$from)
+#> [1] "2025-01-01 00:00:00 UTC" "2025-12-16 23:00:00 UTC"
+# Let's plot the average daily counts for this counter:
+yearly_counts |>
+  mutate(sensor = id_lookup[id]) |>
+  group_by(sensor, day = as.Date(from)) |>
+  summarise(count = mean(count)) |>
+  ggplot(aes(x = day, y = count, color = sensor)) +
+  geom_line() +
+  labs(
+    title = "Traffic Counts",
+    x = "Time",
+    y = "Total Vehicles"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+#> `summarise()` has grouped output by 'sensor'. You can override using the
+#> `.groups` argument.
+```
+
+<img src="man/figures/README-yearly_stats-1.png" width="100%" />
+
 Note: this will fail if the sensors don’t have speed recording enabled:
 
 ``` r

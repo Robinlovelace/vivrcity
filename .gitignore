@@ -10,3 +10,4 @@
 *.geojson
 *.csv
 *.html
+*cache*
