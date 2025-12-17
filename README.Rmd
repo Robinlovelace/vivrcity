@@ -128,7 +128,7 @@ yearly_counts |>
   ggplot(aes(x = day, y = count)) +
   geom_line() +
   labs(
-    title = "Traffic Counts (Dec 2025)",
+    title = "Traffic Counts",
     x = "Time",
     y = "Total Vehicles"
   ) +
