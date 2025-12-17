@@ -87,26 +87,27 @@ set.seed(2025)
 sampled_metadata <- metadata_sf |>
   slice_sample(n = 3) |>
   mutate(sensor = c("A", "B", "C"))
-sampled_ids <- sampled_metadata$id
-id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
 
 # Get counts for a week in 2025
 from_time <- as.POSIXct("2025-12-10", tz = "UTC")
 to_time <- as.POSIXct("2025-12-17", tz = "UTC")
 
-counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |>
-  mutate(sensor = id_lookup[id])
+counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time)
 ```
 
 The package automatically batches requests \>7 days to work around API
 limits. Here’s a 365-day example:
 
 ``` r
+sampled_ids <- sampled_metadata$id
+id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
+
 # Get a full year of data (automatically batched into 7-day chunks)
 from_year <- as.POSIXct("2025-01-01", tz = "UTC")
 to_year <- as.POSIXct("2025-12-17", tz = "UTC")
 
-yearly_counts <- get_countline_counts(sampled_ids[1], from = from_year, to = to_year)
+yearly_counts <- get_countline_counts(sampled_ids[1], from = from_year, to = to_year) |>
+  mutate(sensor = id_lookup[id])
 nrow(yearly_counts)
 #> [1] 7949
 range(yearly_counts$from)
@@ -124,25 +125,23 @@ We can visualise the counts:
 
 ``` r
 # Summary statistics
-summary_stats <- counts_df |>
+summary_stats <- yearly_counts |>
   group_by(sensor) |>
   summarise(
     observations = n(),
     total_count = sum(count, na.rm = TRUE)
   )
 summary_stats
-#> # A tibble: 3 × 3
+#> # A tibble: 1 × 3
 #>   sensor observations total_count
 #>   <chr>         <int>       <dbl>
-#> 1 A               158        5641
-#> 2 B               164        7804
-#> 3 C               155        6536
+#> 1 A              7949      285986
 
 # Plot traffic counts over time
-ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
+ggplot(yearly_counts, aes(x = from, y = count, color = sensor)) +
   geom_line() +
   labs(
-    title = "Traffic Counts (Dec 2025)",
+    title = "Traffic Counts",
     x = "Time",
     y = "Total Vehicles",
     color = "Sensor"
