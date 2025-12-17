@@ -87,32 +87,49 @@ set.seed(2025)
 sampled_metadata <- metadata_sf |>
   slice_sample(n = 3) |>
   mutate(sensor = c("A", "B", "C"))
+sampled_ids <- sampled_metadata$id
+id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
 
 # Get counts for a week in 2025
 from_time <- as.POSIXct("2025-12-10", tz = "UTC")
 to_time <- as.POSIXct("2025-12-17", tz = "UTC")
 
-counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time)
+counts_df <- get_countline_counts(sampled_ids, from = from_time, to = to_time) |>
+  mutate(sensor = id_lookup[id])
 ```
 
 The package automatically batches requests \>7 days to work around API
 limits. Here’s a 365-day example:
 
 ``` r
-sampled_ids <- sampled_metadata$id
-id_lookup <- setNames(sampled_metadata$sensor, sampled_metadata$id)
-
 # Get a full year of data (automatically batched into 7-day chunks)
 from_year <- as.POSIXct("2025-01-01", tz = "UTC")
 to_year <- as.POSIXct("2025-12-17", tz = "UTC")
 
-yearly_counts <- get_countline_counts(sampled_ids[1], from = from_year, to = to_year) |>
-  mutate(sensor = id_lookup[id])
+yearly_counts <- get_countline_counts(sampled_ids[1], from = from_year, to = to_year)
+```
+
+``` r
 nrow(yearly_counts)
-#> [1] 7949
+#> [1] 6792
 range(yearly_counts$from)
 #> [1] "2025-01-01 00:00:00 UTC" "2025-12-16 23:00:00 UTC"
+# Let's plot the average daily counts for this counter:
+yearly_counts |>
+  group_by(day = as.Date(from)) |>
+  summarise(count = mean(count)) |>
+  ggplot(aes(x = day, y = count)) +
+  geom_line() +
+  labs(
+    title = "Traffic Counts (Dec 2025)",
+    x = "Time",
+    y = "Total Vehicles"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
+
+<img src="man/figures/README-yearly_stats-1.png" width="100%" />
 
 Note: this will fail if the sensors don’t have speed recording enabled:
 
@@ -125,23 +142,25 @@ We can visualise the counts:
 
 ``` r
 # Summary statistics
-summary_stats <- yearly_counts |>
+summary_stats <- counts_df |>
   group_by(sensor) |>
   summarise(
     observations = n(),
     total_count = sum(count, na.rm = TRUE)
   )
 summary_stats
-#> # A tibble: 1 × 3
+#> # A tibble: 3 × 3
 #>   sensor observations total_count
 #>   <chr>         <int>       <dbl>
-#> 1 A              7949      285986
+#> 1 A               162        2804
+#> 2 B               142         961
+#> 3 C               143         834
 
 # Plot traffic counts over time
-ggplot(yearly_counts, aes(x = from, y = count, color = sensor)) +
+ggplot(counts_df, aes(x = from, y = count, color = sensor)) +
   geom_line() +
   labs(
-    title = "Traffic Counts",
+    title = "Traffic Counts (Dec 2025)",
     x = "Time",
     y = "Total Vehicles",
     color = "Sensor"
