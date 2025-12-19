@@ -1,4 +1,4 @@
-# Get Countline Metadata
+#' Get Countline Metadata
 #'
 #' @importFrom sf st_linestring st_sfc st_sf
 #' @importFrom purrr map

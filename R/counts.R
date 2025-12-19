@@ -96,7 +96,7 @@ get_counts <- function(countline_ids, from, to, by_class = TRUE, split_direction
   return(counts_df)
 }
 
-# Get Countline Counts (original function for backward compatibility)
+#' Get Countline Counts
 #'
 #' @param countline_ids Vector of countline IDs.
 #' @param from Start timestamp.
