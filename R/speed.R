@@ -3,10 +3,10 @@
 #' @param countline_ids Vector of countline IDs.
 #' @param from Start timestamp.
 #' @param to End timestamp.
-#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "1h".
+#' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "24h".
 #' @return Data frame of speeds.
 #' @export
-get_countline_speed <- function(countline_ids, from, to, time_bucket = "1h") {
+get_countline_speed <- function(countline_ids, from, to, time_bucket = "24h") {
   req <- vivacity_req("countline/speed") |>
     httr2::req_url_query(
       countline_ids = paste(countline_ids, collapse = ","),
