@@ -73,11 +73,11 @@ library(ggplot2)
 # Get countline metadata (returns sf object)
 metadata_sf <- get_countline_metadata()
 names(metadata_sf)
-#> [1] "id"                                 "name"                              
-#> [3] "description"                        "direction"                         
-#> [5] "is_dwell_times_filtering_countline" "is_anpr"                           
-#> [7] "is_speed"                           "modified_at"                       
-#> [9] "geometry"
+#>  [1] "id"                                 "name"                              
+#>  [3] "sensor_name"                        "description"                       
+#>  [5] "direction"                          "is_dwell_times_filtering_countline"
+#>  [7] "is_anpr"                            "is_speed"                          
+#>  [9] "modified_at"                        "geometry"
 ```
 
 The countline dataset is represented as linestrings. For visualisation
@@ -96,6 +96,29 @@ e.g.:
 library(tmap)
 tmap_mode("view")
 qtm(metadata_points)
+```
+
+Note that each device typically has 2 countlines (e.g. `S38_in` and
+`S38_out`):
+
+``` r
+metadata_sf$id |>
+  duplicated() |>
+  summary()
+#>    Mode   FALSE 
+#> logical     434
+# for name:
+metadata_sf$name |>
+  duplicated() |>
+  summary()
+#>    Mode   FALSE    TRUE 
+#> logical     430       4
+# simplified name:
+metadata_sf$sensor_name |>
+  duplicated() |>
+  summary()
+#>    Mode   FALSE    TRUE 
+#> logical     164     270
 ```
 
 ## Getting counts
@@ -117,7 +140,8 @@ to_time <- as.POSIXct("2025-12-17", tz = "UTC")
 counts <- get_counts(sampled_ids, from = from_time, to = to_time)
 
 names(counts)
-#> [1] "id"    "from"  "to"    "class" "count"
+#> [1] "id"          "sensor_name" "name"        "from"        "to"         
+#> [6] "direction"   "class"       "count"
 
 # Plot pedestrians vs cyclists
 counts |>
@@ -136,7 +160,7 @@ counts |>
   theme_minimal()
 ```
 
-<img src="README_files/figure-gfm/counts-1.png" width="100%" />
+<img src="man/figures/README-counts-1.png" width="100%" />
 
 ## Getting speeds
 
@@ -146,6 +170,35 @@ Note: this will fail if the sensors don’t have speed recording enabled:
 # Get speeds (function accepts vector of IDs)
 speeds_df <- get_countline_speed(sampled_ids, from = from_time, to = to_time)
 ```
+
+## Aggregating data
+
+Sometimes you might want to aggregate data from multiple countlines that
+belong to the same sensor (e.g. `S38_in` and `S38_out`). The package
+provides functions to simplify IDs and aggregate both counts and
+metadata.
+
+``` r
+# Aggregate counts (sums across directions for same ID)
+aggregated_counts <- aggregate_counts(counts)
+nrow(aggregated_counts) / nrow(counts)
+#> [1] 0.5
+
+# Aggregate metadata (returns sf object with one row per sensor)
+metadata_aggregated <- aggregate_metadata(metadata_sf)
+#> Warning: st_centroid assumes attributes are constant over geometries
+names(metadata_aggregated)
+#> [1] "id"           "ids"          "names"        "n_countlines" "geometry"
+nrow(metadata_sf)
+#> [1] 434
+nrow(metadata_aggregated)
+#> [1] 162
+
+# Plot aggregated metadata
+plot(metadata_aggregated["n_countlines"], main = "Number of countlines per sensor", pch = 16)
+```
+
+<img src="man/figures/README-aggregation-1.png" width="100%" />
 
 ## Next Steps
 

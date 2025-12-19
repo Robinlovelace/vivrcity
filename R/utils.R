@@ -41,3 +41,20 @@ perform_request <- function(req) {
     }
   )
 }
+
+#' Simplify Countline Name
+#'
+#' Extracts the unique sensor component from a countline name.
+#' Assumes the format "SensorID_Location_...".
+#'
+#' @param name A character vector of countline names.
+#' @return A character vector of simplified names.
+#' @export
+#' @examples
+#' name_simplify("S38_eastgate_crossing_lpti")
+name_simplify <- function(name) {
+    # Convert to character if needed
+    name <- as.character(name)
+    # Extract everything before the first underscore
+    sub("^([^_]+)_.*$", "\\1", name)
+}

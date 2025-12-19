@@ -1,20 +1,3 @@
-' Simplify Countline Name
-#'
-#' Extracts the unique sensor component from a countline name.
-#' Assumes the format "SensorID_Location_...".
-#'
-#' @param name A character vector of countline names.
-#' @return A character vector of simplified names.
-#' @export
-#' @examples
-#' name_simplify("S38_eastgate_crossing_lpti")
-name_simplify <- function(name) {
-    # Convert to character if needed
-    name <- as.character(name)
-    # Extract everything before the first underscore
-    sub("^([^_]+)_.*$", "\\1", name)
-}
-
 #' Aggregate Counts
 #'
 #' Aggregates count data. This sums counts across directions (and any other non-grouping columns)
@@ -74,7 +57,7 @@ aggregate_counts <- function(data) {
 #' @param centroids Logical. If TRUE (default), converts the aggregated geometry to centroids.
 #' @return An sf object with aggregated metadata.
 #' @importFrom dplyr group_by summarise rename n sym
-#' @importFrom sf st_centroid
+#' @importFrom sf st_centroid st_is_empty st_combine
 #' @export
 aggregate_metadata <- function(metadata, centroids = TRUE) {
     # Determine grouping column
@@ -87,22 +70,25 @@ aggregate_metadata <- function(metadata, centroids = TRUE) {
          stop("Metadata must have a 'sensor_name' or 'name' column.")
     }
 
+    # Remove empty geometries to avoid unioning/centroid issues
+    metadata <- metadata[!sf::st_is_empty(metadata), ]
+
     # Aggregate
-    # Note: summarise on sf object automatically unions geometry
+    # We use st_combine explicitly to ensure each group results in a single 
+    # multi-geometry object, avoiding row mismatch errors in some sf/dplyr versions.
     aggregated <- metadata |>
         dplyr::group_by(!!dplyr::sym(grp_col)) |> 
         dplyr::summarise(
             ids = paste(id, collapse = ","),
             names = paste(name, collapse = ","),
             n_countlines = dplyr::n(),
+            geometry = sf::st_combine(geometry),
             .groups = "drop"
         )
     
     # Rename grouping column to 'id' for the output
-    # Using rename with dynamic name requires := or similar, but rename(new = old) works with standard eval if we verify col name
-    # We know the column is named whatever grp_col is.
-    # Simplest way is to just set the name
-    names(aggregated)[names(aggregated) == grp_col] <- "id"
+    aggregated <- aggregated |> 
+        dplyr::rename(id = !!dplyr::sym(grp_col))
 
     if (centroids) {
         aggregated <- sf::st_centroid(aggregated)

@@ -12,6 +12,7 @@ knitr::opts_chunk$set(
   out.width = "100%"
   # , cache = TRUE
 )
+devtools::load_all()
 ```
 
 # vivrcity
@@ -176,7 +177,7 @@ nrow(metadata_sf)
 nrow(metadata_aggregated)
 
 # Plot aggregated metadata
-qtm(metadata_aggregated)
+plot(metadata_aggregated["n_countlines"], main = "Number of countlines per sensor", pch = 16)
 ```
 
 ```{r summary, eval=FALSE, echo=FALSE}
