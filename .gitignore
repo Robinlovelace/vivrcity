@@ -5,9 +5,10 @@
 *.Rcheck
 *.Rds
 .DS_Store
-
 .Renviron
 *.geojson
 *.csv
 *.html
 *cache*
+get_all.R
+*.parquet

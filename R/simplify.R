@@ -104,3 +104,40 @@ aggregate_metadata <- function(metadata, centroids = TRUE) {
 
     aggregated
 }
+
+#' Calculate Average Counts
+#'
+#' Calculates the mean count over the time period provided in the data.
+#' If the input data is daily counts, this calculates the Average Daily Traffic (ADT)
+#' over the period.
+#'
+#' @param data A data frame of counts.
+#' @param by_sensor Logical. If TRUE, groups by `sensor_name`. Defaults to TRUE if `sensor_name` exists.
+#' @return A data frame with columns for each class containing the average count.
+#' @importFrom tidyr pivot_wider
+#' @export
+calculate_average_counts <- function(data, by_sensor = TRUE) {
+  # Determine grouping variable
+  group_var <- if (by_sensor && "sensor_name" %in% names(data)) "sensor_name" else "id"
+  
+  if (!group_var %in% names(data)) {
+      stop(paste("Column", group_var, "not found in data."))
+  }
+  
+  if (!"class" %in% names(data)) {
+      stop("Column 'class' not found in data.")
+  }
+
+  if (!"count" %in% names(data)) {
+      stop("Column 'count' not found in data.")
+  }
+  
+  # Group and summarise
+  data |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(group_var, "class")))) |>
+    dplyr::summarise(
+      count = mean(count, na.rm = TRUE),
+      .groups = "drop"
+    ) |>
+    tidyr::pivot_wider(names_from = "class", values_from = "count")
+}

@@ -2,6 +2,7 @@
 
 export(aggregate_counts)
 export(aggregate_metadata)
+export(calculate_average_counts)
 export(get_all_countline_counts_annual)
 export(get_countline_counts)
 export(get_countline_counts_by_class)
@@ -28,3 +29,4 @@ importFrom(sf,st_linestring)
 importFrom(sf,st_sf)
 importFrom(sf,st_sfc)
 importFrom(tibble,tibble)
+importFrom(tidyr,pivot_wider)
