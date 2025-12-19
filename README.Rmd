@@ -97,6 +97,18 @@ tmap_mode("view")
 qtm(metadata_points)
 ```
 
+Note that each device typically has 2 countlines (e.g. `S38_in` and `S38_out`):
+
+```{r}
+metadata_sf$id |>
+  duplicated() |>
+  summary()
+# for name:
+metadata_sf$name |>
+  duplicated() |>
+  summary()
+```
+
 ## Getting counts
 
 ```{r counts}
@@ -149,13 +161,13 @@ Sometimes you might want to aggregate data from multiple countlines that belong 
 The package provides functions to simplify IDs and aggregate both counts and metadata.
 
 ```{r aggregation}
-# Aggregate counts by simplified ID (sensor)
-aggregated_counts <- aggregate_counts(counts, simplify_fn = id_simplify)
+# Aggregate counts (sums across directions for same ID)
+aggregated_counts <- aggregate_counts(counts)
 nrow(aggregated_counts) / nrow(counts)
 
 # Aggregate metadata (returns sf object with one row per sensor and unioned geometry)
-# Use name_simplify to aggregate based on the name column (where sensor ID usually is)
-metadata_aggregated <- aggregate_meta(metadata_sf, simplify_fn = name_simplify)
+# Defaults to using name_simplify to aggregate based on the name column
+metadata_aggregated <- aggregate_meta(metadata_sf)
 
 # Plot aggregated metadata
 qtm(metadata_aggregated)

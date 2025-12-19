@@ -1,22 +1,3 @@
-#' Simplify Countline ID
-#'
-#' Extracts the unique sensor identifier from a compound countline ID.
-#' Assumes the format "SensorID_Specifics".
-#'
-#' @param id A character vector of countline IDs.
-#' @return A character vector of simplified IDs.
-#' @export
-#' @examples
-#' id_simplify("S38_in")
-#' id_simplify("S38_out")
-id_simplify <- function(id) {
-    # Convert to character if needed
-    id <- as.character(id)
-    # Extract everything before the first underscore
-    # If no underscore, return the original string
-    sub("^([^_]+)_.*$", "\\1", id)
-}
-
 #' Simplify Countline Name
 #'
 #' Extracts the unique sensor component from a countline name.
@@ -34,19 +15,19 @@ name_simplify <- function(name) {
     sub("^([^_]+)_.*$", "\\1", name)
 }
 
-#' Aggregate Counts by Simplified ID
+#' Aggregate Counts
 #'
-#' Aggregates count data by simplifying the countline IDs and summing the counts.
-#' This is useful when you have multiple countlines for the same sensor (e.g. "S38_in" and "S38_out")
-#' and want to analyze the total traffic for the sensor.
+#' Aggregates count data. By default, this sums counts across directions for the same ID,
+#' time, and class (if present). If a `simplify_fn` is provided, it first simplifies
+#' the ID column, allowing aggregation across multiple countlines (e.g. by sensor).
 #'
 #' @param data A data frame of counts, typically from `get_counts()`.
-#' @param simplify_fn A function to simplify the IDs. Defaults to `id_simplify`.
-#'   Can also be `name_simplify` if the ID column contains names.
+#' @param simplify_fn A function to simplify the IDs. Defaults to `identity` (no simplification).
+#'   Commonly used with `name_simplify` if the ID column contains names.
 #' @return A data frame with aggregated counts.
 #' @importFrom dplyr group_by summarise across all_of where
 #' @export
-aggregate_counts <- function(data, simplify_fn = id_simplify) {
+aggregate_counts <- function(data, simplify_fn = identity) {
     # Check if id column exists
     if (!"id" %in% names(data)) {
         stop("Data must have an 'id' column.")
@@ -84,7 +65,7 @@ aggregate_counts <- function(data, simplify_fn = id_simplify) {
 #' keeping only the simplified ID and the unioned geometry.
 #'
 #' @param metadata An sf object of countline metadata, typically from `get_countline_metadata()`.
-#' @param simplify_fn A function to simplify the IDs. Defaults to `id_simplify`.
+#' @param simplify_fn A function to simplify the IDs. Defaults to `name_simplify`.
 #'   If `name_simplify` is used, the function will look for a "name" column.
 #'   Otherwise it uses the "id" column.
 #' @param centroids Logical. If TRUE (default), converts the aggregated geometry to centroids.
@@ -92,7 +73,8 @@ aggregate_counts <- function(data, simplify_fn = id_simplify) {
 #' @importFrom dplyr group_by summarise slice
 #' @importFrom sf st_union st_centroid
 #' @export
-aggregate_meta <- function(metadata, simplify_fn = id_simplify, centroids = TRUE) {
+aggregate_meta <- function(metadata, simplify_fn = name_simplify, centroids = TRUE) {
+
     # Determine target column based on simplify_fn
     target_col <- "id"
     # Check if the passed function is identical to name_simplify
