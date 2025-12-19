@@ -2,6 +2,8 @@
 #'
 #' Simple wrapper to get countline counts with class breakdown by default.
 #' This is the recommended function for most use cases.
+#' It automatically fetches metadata to add `name` and `sensor_name` columns,
+#' enabling easier aggregation by sensor.
 #'
 #' @param countline_ids Vector of countline IDs.
 #' @param from Start timestamp.
@@ -13,14 +15,15 @@
 #'   If FALSE, sums counts across directions.
 #' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "24h".
 #' @param wait Seconds to wait between API requests. Defaults to 1.
-#' @return A data frame with columns `id`, `from`, `to`, `class`, `direction`, `count`.
+#' @return A data frame with columns `id`, `sensor_name`, `name`, `from`, `to`, `class`, `direction`, `count`.
 #'   If `by_class` is FALSE, `class` will be "all".
 #'   If `split_direction` is FALSE, `direction` column is omitted (counts are summed).
 #' @export
 get_counts <- function(countline_ids, from, to, by_class = TRUE, split_direction = TRUE, time_bucket = "24h", wait = 1) {
   batches <- batch_date_range(from, to, max_days = 7)
 
-  if (by_class) {
+  # Fetch counts
+  counts_df <- if (by_class) {
     purrr::map_df(batches, function(batch) {
       if (wait > 0) Sys.sleep(wait)
       tryCatch({
@@ -59,6 +62,30 @@ get_counts <- function(countline_ids, from, to, by_class = TRUE, split_direction
       })
     })
   }
+
+  # Fetch and join metadata to get name and sensor_name
+  if (nrow(counts_df) > 0) {
+      meta <- tryCatch({
+          get_countline_metadata()
+      }, error = function(e) {
+          message("Warning: Failed to fetch metadata to populate sensor names: ", e$message)
+          NULL
+      })
+
+      if (!is.null(meta)) {
+          meta_df <- meta |> 
+              sf::st_drop_geometry() |> 
+              dplyr::select(id, name) |> 
+              dplyr::mutate(sensor_name = name_simplify(name))
+          
+          # Join and reorder
+          counts_df <- counts_df |>
+              dplyr::left_join(meta_df, by = "id") |>
+              dplyr::relocate(sensor_name, name, .after = id)
+      }
+  }
+
+  return(counts_df)
 }
 
 # Get Countline Counts (original function for backward compatibility)
