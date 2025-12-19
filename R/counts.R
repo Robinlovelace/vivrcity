@@ -13,13 +13,16 @@
 #'   total counts only.
 #' @param split_direction If TRUE (default), preserves direction information.
 #'   If FALSE, sums counts across directions.
+#' @param aggregate If TRUE, aggregates the results by sensor (summing directions
+#'   and combining countlines belonging to the same sensor). Defaults to FALSE.
 #' @param time_bucket Time bucket size (e.g. "1h", "5m"). Defaults to "24h".
 #' @param wait Seconds to wait between API requests. Defaults to 1.
 #' @return A data frame with columns `id`, `sensor_name`, `name`, `from`, `to`, `class`, `direction`, `count`.
 #'   If `by_class` is FALSE, `class` will be "all".
 #'   If `split_direction` is FALSE, `direction` column is omitted (counts are summed).
+#'   If `aggregate` is TRUE, `id` column will contain the sensor name, and the `direction` and `name` columns are removed.
 #' @export
-get_counts <- function(countline_ids, from, to, by_class = TRUE, split_direction = TRUE, time_bucket = "24h", wait = 1) {
+get_counts <- function(countline_ids, from, to, by_class = TRUE, split_direction = TRUE, aggregate = FALSE, time_bucket = "24h", wait = 1) {
   batches <- batch_date_range(from, to, max_days = 7)
 
   # Fetch counts
@@ -83,6 +86,11 @@ get_counts <- function(countline_ids, from, to, by_class = TRUE, split_direction
               dplyr::left_join(meta_df, by = "id") |>
               dplyr::relocate(sensor_name, name, .after = id)
       }
+  }
+  
+  # Aggregate if requested
+  if (aggregate && nrow(counts_df) > 0) {
+      counts_df <- aggregate_counts(counts_df)
   }
 
   return(counts_df)
