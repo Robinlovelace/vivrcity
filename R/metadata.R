@@ -1,11 +1,13 @@
 #' Get Countline Metadata
 #'
+#' @param aggregate Logical. If TRUE, the metadata is aggregated by sensor (see `aggregate_metadata`).
+#'   Defaults to FALSE.
 #' @importFrom sf st_linestring st_sfc st_sf
 #' @importFrom purrr map
 #' @importFrom dplyr bind_rows
 #' @importFrom tibble tibble
 #' @export
-get_countline_metadata <- function() {
+get_countline_metadata <- function(aggregate = FALSE) {
   raw_metadata <- perform_request(vivacity_req("countline/metadata"))
 
   if (length(raw_metadata) == 0) {
@@ -56,6 +58,10 @@ get_countline_metadata <- function() {
 
   # Create the sf object
   sf_metadata <- sf::st_sf(attributes_df, geometry = sfc_geometries)
+
+  if (aggregate) {
+    sf_metadata <- aggregate_metadata(sf_metadata)
+  }
 
   return(sf_metadata)
 }
