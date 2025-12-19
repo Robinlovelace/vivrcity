@@ -65,7 +65,7 @@ aggregate_counts <- function(data) {
         )
 }
 
-#' Aggregate Metadata by Sensor
+#' Aggregate Metadata
 #'
 #' Aggregates countline metadata by simplifying the countline names (extracting the sensor ID)
 #' and returning one row per sensor.
@@ -76,7 +76,7 @@ aggregate_counts <- function(data) {
 #' @importFrom dplyr group_by summarise slice
 #' @importFrom sf st_union st_centroid
 #' @export
-aggregate_meta <- function(metadata, centroids = TRUE) {
+aggregate_metadata <- function(metadata, centroids = TRUE) {
     # Check if name column exists
     if (!"name" %in% names(metadata)) {
         stop("Metadata must have a 'name' column.")

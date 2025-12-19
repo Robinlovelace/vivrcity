@@ -166,8 +166,9 @@ aggregated_counts <- aggregate_counts(counts)
 nrow(aggregated_counts) / nrow(counts)
 
 # Aggregate metadata (returns sf object with one row per sensor and unioned geometry)
-# Defaults to using name_simplify to aggregate based on the name column
-metadata_aggregated <- aggregate_meta(metadata_sf)
+metadata_aggregated <- aggregate_metadata(metadata_sf)
+nrow(metadata_sf)
+nrow(metadata_aggregated)
 
 # Plot aggregated metadata
 qtm(metadata_aggregated)
