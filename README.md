@@ -118,7 +118,7 @@ metadata_sf$sensor_name |>
   duplicated() |>
   summary()
 #>    Mode   FALSE    TRUE 
-#> logical     164     270
+#> logical     248     186
 ```
 
 ## Getting counts
@@ -199,7 +199,7 @@ names(metadata_aggregated)
 nrow(metadata_sf)
 #> [1] 434
 nrow(metadata_aggregated)
-#> [1] 162
+#> [1] 245
 summary(aggregated_counts$sensor_name %in% metadata_aggregated$sensor_name)
 #>    Mode    TRUE 
 #> logical     239

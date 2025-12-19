@@ -194,8 +194,10 @@ metadata_sensor_level <- metadata_aggregated |>
   filter(sensor_name == single_sensor_id) |>
   sf::st_centroid()
 metadata_count_level <- metadata_sf |>
-  filter(sensor_name == single_sensor_id) 
-plot(metadata_count_level$geometry, main = paste("Sensor", single_sensor_id))
+  filter(sensor_name == single_sensor_id) |>
+  sf::st_centroid() 
+metadata_count_level$name
+qtm(metadata_count_level$geometry)
 plot(metadata_sensor_level$geometry, col = "red", pch = 19, add = TRUE)
 ```
 
