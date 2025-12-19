@@ -5,34 +5,32 @@
 #'
 #' It attempts to intelligently aggregate by sensor by checking for a `sensor_name` column (created by `get_counts()`).
 #' If `sensor_name` is missing but `name` is present, it will derive `sensor_name` from `name`.
-#' If neither is present, it aggregates by the existing `id`.
+#' If neither is present, it aggregates by the existing `id` (and treats it as the sensor name).
 #'
 #' @param data A data frame of counts, typically from `get_counts()`.
-#' @return A data frame with aggregated counts.
-#' @importFrom dplyr group_by summarise across all_of where
+#' @return A data frame with aggregated counts, including a `sensor_name` column.
+#' @importFrom dplyr group_by summarise across all_of where mutate
 #' @export
 aggregate_counts <- function(data) {
-    # Check if id column exists
-    if (!"id" %in% names(data)) {
-        stop("Data must have an 'id' column.")
+    # Ensure sensor_name exists
+    if (!"sensor_name" %in% names(data)) {
+        if ("name" %in% names(data)) {
+            data$sensor_name <- name_simplify(data$name)
+        } else if ("id" %in% names(data)) {
+            data$sensor_name <- data$id
+        } else {
+            stop("Data must have 'sensor_name', 'name', or 'id' column.")
+        }
     }
 
-    # Determine grouping ID
-    # Priority: sensor_name > derived from name > existing id
-    if ("sensor_name" %in% names(data)) {
-        data$id <- data$sensor_name
-    } else if ("name" %in% names(data)) {
-        data$id <- name_simplify(data$name)
-    }
-    
-    # Determine grouping columns: id, from, to.
-    # And 'class' if it exists.
-    group_cols <- c("id", "from", "to")
+    # Determine grouping columns
+    # We group by sensor_name
+    group_cols <- c("sensor_name", "from", "to")
     if ("class" %in% names(data)) {
         group_cols <- c(group_cols, "class")
     }
 
-    # Ensure group columns exist
+    # Ensure group columns exist (e.g. from, to)
     missing_cols <- setdiff(group_cols, names(data))
     if (length(missing_cols) > 0) {
         stop(paste("Data missing expected columns:", paste(missing_cols, collapse = ", ")))
@@ -55,40 +53,52 @@ aggregate_counts <- function(data) {
 #'
 #' @param metadata An sf object of countline metadata, typically from `get_countline_metadata()`.
 #' @param centroids Logical. If TRUE (default), converts the aggregated geometry to centroids.
-#' @return An sf object with aggregated metadata.
-#' @importFrom dplyr group_by summarise rename n sym
-#' @importFrom sf st_centroid st_is_empty st_combine
+#' @return An sf object with aggregated metadata, including a `sensor_name` column.
+#' @importFrom dplyr group_by summarise rename n sym left_join select mutate
+#' @importFrom sf st_centroid st_is_empty st_combine st_drop_geometry st_as_sf
 #' @export
 aggregate_metadata <- function(metadata, centroids = TRUE) {
-    # Determine grouping column
-    if ("sensor_name" %in% names(metadata)) {
-        grp_col <- "sensor_name"
-    } else if ("name" %in% names(metadata)) {
-        metadata$sensor_name <- name_simplify(metadata$name)
-        grp_col <- "sensor_name"
-    } else {
-         stop("Metadata must have a 'sensor_name' or 'name' column.")
+    # Ensure sensor_name exists
+    if (!"sensor_name" %in% names(metadata)) {
+        if ("name" %in% names(metadata)) {
+            metadata$sensor_name <- name_simplify(metadata$name)
+        } else {
+             stop("Metadata must have a 'sensor_name' or 'name' column.")
+        }
     }
 
-    # Remove empty geometries to avoid unioning/centroid issues
+    # Remove empty geometries
     metadata <- metadata[!sf::st_is_empty(metadata), ]
 
-    # Aggregate
-    # We use st_combine explicitly to ensure each group results in a single 
-    # multi-geometry object, avoiding row mismatch errors in some sf/dplyr versions.
-    aggregated <- metadata |>
-        dplyr::group_by(!!dplyr::sym(grp_col)) |> 
+    # Ensure sensor_name is character
+    metadata$sensor_name <- as.character(metadata$sensor_name)
+
+    # Aggregate attributes
+    attr_df <- metadata |>
+        sf::st_drop_geometry() |>
+        dplyr::group_by(sensor_name) |>
         dplyr::summarise(
             ids = paste(id, collapse = ","),
             names = paste(name, collapse = ","),
             n_countlines = dplyr::n(),
+            .groups = "drop"
+        )
+    
+    # Aggregate geometry
+    # Group by sensor_name
+    geom_sf <- metadata |>
+        dplyr::select(sensor_name) |>
+        dplyr::group_by(sensor_name) |>
+        dplyr::summarise(
             geometry = sf::st_combine(geometry),
             .groups = "drop"
         )
     
-    # Rename grouping column to 'id' for the output
-    aggregated <- aggregated |> 
-        dplyr::rename(id = !!dplyr::sym(grp_col))
+    # Combine
+    aggregated <- dplyr::left_join(attr_df, geom_sf, by = "sensor_name") |>
+        sf::st_as_sf() 
+    
+    # We do NOT rename sensor_name to id, ensuring sensor_name is present.
 
     if (centroids) {
         aggregated <- sf::st_centroid(aggregated)

@@ -20,7 +20,7 @@
 #' @return A data frame with columns `id`, `sensor_name`, `name`, `from`, `to`, `class`, `direction`, `count`.
 #'   If `by_class` is FALSE, `class` will be "all".
 #'   If `split_direction` is FALSE, `direction` column is omitted (counts are summed).
-#'   If `aggregate` is TRUE, `id` column will contain the sensor name, and the `direction` and `name` columns are removed.
+#'   If `aggregate` is TRUE, the data is aggregated by `sensor_name` (see `aggregate_counts`), replacing `id` and `name` columns.
 #' @export
 get_counts <- function(countline_ids, from, to, by_class = TRUE, split_direction = TRUE, aggregate = FALSE, time_bucket = "24h", wait = 1) {
   batches <- batch_date_range(from, to, max_days = 7)
