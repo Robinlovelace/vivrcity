@@ -45,6 +45,12 @@ get_countline_metadata <- function() {
   # Combine attributes into a data frame
   attributes_df <- dplyr::bind_rows(attributes_list)
 
+  # Add sensor_name
+  if ("name" %in% names(attributes_df)) {
+    attributes_df$sensor_name <- name_simplify(attributes_df$name)
+    attributes_df <- dplyr::relocate(attributes_df, sensor_name, .after = name)
+  }
+
   # Combine geometries into an sfc object
   sfc_geometries <- sf::st_sfc(geometries_list, crs = 4326) # Assuming WGS 84 for lat/lon
 
