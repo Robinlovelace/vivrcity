@@ -98,8 +98,6 @@ aggregate_metadata <- function(metadata, centroids = TRUE) {
     aggregated <- dplyr::left_join(attr_df, geom_sf, by = "sensor_name") |>
         sf::st_as_sf() 
     
-    # We do NOT rename sensor_name to id, ensuring sensor_name is present.
-
     if (centroids) {
         aggregated <- sf::st_centroid(aggregated)
     }
