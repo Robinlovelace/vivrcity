@@ -107,6 +107,10 @@ metadata_sf$id |>
 metadata_sf$name |>
   duplicated() |>
   summary()
+# simplified name:
+metadata_sf$sensor_name |>
+  duplicated() |>
+  summary()
 ```
 
 ## Getting counts
@@ -165,8 +169,9 @@ The package provides functions to simplify IDs and aggregate both counts and met
 aggregated_counts <- aggregate_counts(counts)
 nrow(aggregated_counts) / nrow(counts)
 
-# Aggregate metadata (returns sf object with one row per sensor and unioned geometry)
+# Aggregate metadata (returns sf object with one row per sensor)
 metadata_aggregated <- aggregate_metadata(metadata_sf)
+names(metadata_aggregated)
 nrow(metadata_sf)
 nrow(metadata_aggregated)
 

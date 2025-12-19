@@ -1,4 +1,4 @@
-#' Simplify Countline Name
+' Simplify Countline Name
 #'
 #' Extracts the unique sensor component from a countline name.
 #' Assumes the format "SensorID_Location_...".
@@ -68,30 +68,41 @@ aggregate_counts <- function(data) {
 #'
 #' Aggregates countline metadata by simplifying the countline names (extracting the sensor ID)
 #' and returning one row per sensor.
+#' It combines original IDs and names into comma-separated strings and counts the number of countlines per sensor.
 #'
 #' @param metadata An sf object of countline metadata, typically from `get_countline_metadata()`.
 #' @param centroids Logical. If TRUE (default), converts the aggregated geometry to centroids.
 #' @return An sf object with aggregated metadata.
-#' @importFrom dplyr group_by summarise slice
-#' @importFrom sf st_union st_centroid
+#' @importFrom dplyr group_by summarise rename n sym
+#' @importFrom sf st_centroid
 #' @export
 aggregate_metadata <- function(metadata, centroids = TRUE) {
-    # Check if name column exists
-    if (!"name" %in% names(metadata)) {
-        stop("Metadata must have a 'name' column.")
+    # Determine grouping column
+    if ("sensor_name" %in% names(metadata)) {
+        grp_col <- "sensor_name"
+    } else if ("name" %in% names(metadata)) {
+        metadata$sensor_name <- name_simplify(metadata$name)
+        grp_col <- "sensor_name"
+    } else {
+         stop("Metadata must have a 'sensor_name' or 'name' column.")
     }
 
-    # Apply simplification to a new column to allow grouping
-    # We use the simplified name as the new ID
-    metadata$id <- name_simplify(metadata$name)
-
     # Aggregate
+    # Note: summarise on sf object automatically unions geometry
     aggregated <- metadata |>
-        dplyr::group_by(id) |>
+        dplyr::group_by(!!dplyr::sym(grp_col)) |> 
         dplyr::summarise(
-            countlines = dplyr::n(),
+            ids = paste(id, collapse = ","),
+            names = paste(name, collapse = ","),
+            n_countlines = dplyr::n(),
             .groups = "drop"
         )
+    
+    # Rename grouping column to 'id' for the output
+    # Using rename with dynamic name requires := or similar, but rename(new = old) works with standard eval if we verify col name
+    # We know the column is named whatever grp_col is.
+    # Simplest way is to just set the name
+    names(aggregated)[names(aggregated) == grp_col] <- "id"
 
     if (centroids) {
         aggregated <- sf::st_centroid(aggregated)
