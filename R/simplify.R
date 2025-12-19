@@ -1,4 +1,3 @@
-```
 #' Simplify Countline Name
 #'
 #' Extracts the unique sensor component from a countline name.
@@ -100,5 +99,3 @@ aggregate_metadata <- function(metadata, centroids = TRUE) {
 
     aggregated
 }
-
-```
