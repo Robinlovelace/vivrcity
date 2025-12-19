@@ -59,5 +59,5 @@ name_simplify <- function(name) {
     name <- as.character(name)
     # Extract the first two parts separated by an underscore
     # e.g. "S58_StPauls_crossing" -> "S58_StPauls"
-    sub("^([^_]+(?:_[^_]+)?).*$", "\\1", name)
+    sub("^([^_]+(?:_[^_]+)?).*$", "\\1", name, perl = TRUE)
 }

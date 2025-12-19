@@ -215,6 +215,9 @@ metadata_sensor_level <- metadata_aggregated |>
   sf::st_centroid()
 metadata_count_level <- metadata_sf |>
   filter(sensor_name == single_sensor_id) 
+# Verify countlines belong to same road:
+metadata_count_level$name
+#> [1] "S58_LeedsRd_pathLHS_wyca001" "S58_LeedsRd_road_wyca001"
 plot(metadata_count_level$geometry, main = paste("Sensor", single_sensor_id))
 plot(metadata_sensor_level$geometry, col = "red", pch = 19, add = TRUE)
 ```
