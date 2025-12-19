@@ -27,7 +27,7 @@ You need a Vivacity API key to use this package. Save it in your
 
     VIVACITY_API_KEY=your_api_key_here
 
-## Installation
+## Usage
 
 This example demonstrates how to retrieve metadata, counts, and
 visualize traffic data.
@@ -175,30 +175,51 @@ speeds_df <- get_countline_speed(sampled_ids, from = from_time, to = to_time)
 
 Sometimes you might want to aggregate data from multiple countlines that
 belong to the same sensor (e.g. `S38_in` and `S38_out`). The package
-provides functions to simplify IDs and aggregate both counts and
-metadata.
+provides functions to aggregate both counts and metadata.
 
 ``` r
 # Aggregate counts (sums across directions for same ID)
+# Note: get_counts(..., aggregate = TRUE) does this automatically
 aggregated_counts <- aggregate_counts(counts)
 nrow(aggregated_counts) / nrow(counts)
 #> [1] 0.5
+names(aggregated_counts)
+#> [1] "sensor_name" "from"        "to"          "class"       "count"
+```
 
+Aggregate metadata to one row per sensor:
+
+``` r
 # Aggregate metadata (returns sf object with one row per sensor)
+# Note: get_countline_metadata(aggregate = TRUE) does this automatically
 metadata_aggregated <- aggregate_metadata(metadata_sf)
 #> Warning: st_centroid assumes attributes are constant over geometries
 names(metadata_aggregated)
-#> [1] "id"           "ids"          "names"        "n_countlines" "geometry"
+#> [1] "sensor_name"  "ids"          "names"        "n_countlines" "geometry"
 nrow(metadata_sf)
 #> [1] 434
 nrow(metadata_aggregated)
 #> [1] 162
-
-# Plot aggregated metadata
-plot(metadata_aggregated["n_countlines"], main = "Number of countlines per sensor", pch = 16)
+summary(aggregated_counts$sensor_name %in% metadata_aggregated$sensor_name)
+#>    Mode    TRUE 
+#> logical     239
 ```
 
-<img src="man/figures/README-aggregation-1.png" width="100%" />
+Let’s plot the results for a single sensor:
+
+``` r
+# Filter to single sensor
+single_sensor_id <- aggregated_counts$sensor_name[1]
+metadata_sensor_level <- metadata_aggregated |>
+  filter(sensor_name == single_sensor_id) |>
+  sf::st_centroid()
+metadata_count_level <- metadata_sf |>
+  filter(sensor_name == single_sensor_id) 
+plot(metadata_count_level$geometry, main = paste("Sensor", single_sensor_id))
+plot(metadata_sensor_level$geometry, col = "red", pch = 19, add = TRUE)
+```
+
+<img src="man/figures/README-single-sensor-1.png" width="100%" />
 
 ## Next Steps
 

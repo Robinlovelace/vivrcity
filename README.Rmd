@@ -40,7 +40,7 @@ Save it in your `.Renviron` file:
 VIVACITY_API_KEY=your_api_key_here
 ```
 
-## Installation
+## Usage
 
 This example demonstrates how to retrieve metadata, counts, and visualize traffic data.
 
@@ -163,21 +163,40 @@ speeds_df <- get_countline_speed(sampled_ids, from = from_time, to = to_time)
 ## Aggregating data
 
 Sometimes you might want to aggregate data from multiple countlines that belong to the same sensor (e.g. `S38_in` and `S38_out`).
-The package provides functions to simplify IDs and aggregate both counts and metadata.
+The package provides functions to aggregate both counts and metadata.
 
 ```{r aggregation}
 # Aggregate counts (sums across directions for same ID)
+# Note: get_counts(..., aggregate = TRUE) does this automatically
 aggregated_counts <- aggregate_counts(counts)
 nrow(aggregated_counts) / nrow(counts)
+names(aggregated_counts)
+```
 
+Aggregate metadata to one row per sensor:
+
+```{r aggregate-metadata}
 # Aggregate metadata (returns sf object with one row per sensor)
+# Note: get_countline_metadata(aggregate = TRUE) does this automatically
 metadata_aggregated <- aggregate_metadata(metadata_sf)
 names(metadata_aggregated)
 nrow(metadata_sf)
 nrow(metadata_aggregated)
+summary(aggregated_counts$sensor_name %in% metadata_aggregated$sensor_name)
+```
 
-# Plot aggregated metadata
-plot(metadata_aggregated["n_countlines"], main = "Number of countlines per sensor", pch = 16)
+Let's plot the results for a single sensor:
+
+```{r single-sensor}
+# Filter to single sensor
+single_sensor_id <- aggregated_counts$sensor_name[1]
+metadata_sensor_level <- metadata_aggregated |>
+  filter(sensor_name == single_sensor_id) |>
+  sf::st_centroid()
+metadata_count_level <- metadata_sf |>
+  filter(sensor_name == single_sensor_id) 
+plot(metadata_count_level$geometry, main = paste("Sensor", single_sensor_id))
+plot(metadata_sensor_level$geometry, col = "red", pch = 19, add = TRUE)
 ```
 
 ```{r summary, eval=FALSE, echo=FALSE}
