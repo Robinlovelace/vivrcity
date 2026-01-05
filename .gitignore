@@ -12,3 +12,4 @@
 *cache*
 get_all.R
 *.parquet
+get_all.log
